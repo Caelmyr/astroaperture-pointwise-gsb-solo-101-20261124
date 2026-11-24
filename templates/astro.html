@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141b25">
+  <title>AstroAperture · 星野测光</title>
+  <link rel="stylesheet" href="/static/astro.css">
+  <script src="/static/astro.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="AstroAperture 星野测光"><span class="mark" aria-hidden="true">✦</span><span>AstroAperture<small>星野测光</small></span></a>
+    <div class="mast-tools"><a href="/prepare">照片准备</a><button id="startDemo" class="secondary">打开练习星图</button><button id="openUpload" class="primary">导入星野原片</button></div>
+  </header>
+  <div class="app-shell">
+    <aside class="library">
+      <div class="library-top"><h2>本地星野</h2><div id="fieldList" class="field-list"></div></div>
+      <div id="annotationLibrary" hidden>
+        <section class="library-section"><h2>星点孔径</h2><div id="starList"></div></section>
+        <section class="library-section"><h2>排除圈</h2><div id="exclusionList"></div></section>
+        <section class="library-section"><h2>观测记录</h2><div id="observationList"></div></section>
+      </div>
+    </aside>
+    <main>
+      <section id="empty" class="empty"><div class="empty-icon" aria-hidden="true">✦</div><h1>从一张星野开始</h1><p>导入线性 16 位灰度原片，圈出目标星与比星，检查天空背景并比较星等。</p><button id="emptyDemo" class="secondary">用合成练习场测光</button></section>
+      <div id="desk" hidden>
+        <div class="project-head"><div><h1 id="fieldName"></h1><p id="fieldFacts"></p></div><button id="saveObs" class="primary">保存本次观测</button></div>
+        <p id="status" role="status" aria-live="polite"></p>
+        <div class="work-grid">
+          <section class="visual-panel" aria-label="原片视图">
+            <div class="view-tools"><button id="addStar" class="tool">＋ 标星点</button><button id="addMask" class="tool">＋ 圈掉干扰</button><label><input id="saturation" type="checkbox"> 标记饱和</label><button id="copyPrepare" class="tool project-action">送到照片准备</button></div>
+            <div class="starfield" id="starfield"><div class="image-plane"><img id="preview" alt="拉伸预览的星野图"><svg id="overlay" aria-label="星点孔径和天空环标注"></svg></div></div>
+            <div class="image-tools"><label>黑点 <input id="black" type="number" min="0" max="65535" value="0"></label><label>白点 <input id="white" type="number" min="1" max="65536" value="65535"></label><button id="applyStretch" class="tool">应用显示</button><button id="autoStretch" class="tool">自动</button><a id="sourceDownload" download>下载 16 位原片</a></div>
+            <section class="profile-panel" aria-label="原像素诊断">
+              <div class="section-head"><h2>孔径诊断</h2><div class="tabs"><button id="growthTab" class="tab current" aria-pressed="true">净光曲线</button><button id="profileTab" class="tab" aria-pressed="false">像素切线</button></div></div>
+              <p id="chartHint" class="muted">选择星点孔径查看诊断。</p><svg id="chart" viewBox="0 0 580 115" role="img" aria-label="孔径诊断曲线" hidden></svg>
+            </section>
+          </section>
+          <section class="results-panel" aria-label="测光结果">
+            <section class="result-card"><div class="section-head"><h2>差分测光</h2><div id="referenceCount" class="muted"></div></div><div class="mag-value" id="targetMagnitude">—</div><p id="targetLabel" class="muted"></p><table><thead><tr><th>比星</th><th>目录星等</th><th>目标星等</th></tr></thead><tbody id="references"></tbody></table><p id="refSpread" class="muted"></p></section>
+            <section class="result-card"><div class="section-head"><h2>当前孔径</h2><button id="editStar" class="tool" hidden>修改</button></div><p id="activeLabel" class="selected-name muted">选择一颗星点。</p><dl id="reading" class="reading"></dl><div class="result-actions"><button id="recenter" class="tool" hidden>重定位中心</button><button id="editMask" class="tool" hidden>修改排除圈</button></div></section>
+            <section class="result-card sky-card"><div class="section-head"><h2>原片概况</h2><div class="muted">ADU</div></div><div id="histogram" class="histogram" aria-label="原片分布柱图"></div><p id="rasterFacts" class="muted"></p></section>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <dialog id="uploadDialog"><form id="uploadForm"><div class="section-head"><h2>导入星野原片</h2><button type="button" class="tool close-dialog" aria-label="关闭">×</button></div><label class="input-label">星野名称<input name="name" placeholder="沿用文件名" maxlength="84"></label><label class="input-label">线性 16 位灰度 PNG 或 TIFF<input name="image" type="file" accept=".png,.tif,.tiff" required></label><p id="uploadMessage" class="muted" role="status"></p><button class="primary" type="submit">导入</button></form></dialog>
+  <dialog id="annotationDialog"><form id="annotationForm"><div class="section-head"><h2 id="annotationTitle"></h2><button type="button" class="tool close-dialog" aria-label="关闭">×</button></div><label class="input-label">名称<input name="name" maxlength="36" required></label><div class="field-row"><label class="input-label">中心 X<input name="x" type="number" step="0.01" min="0" required></label><label class="input-label">中心 Y<input name="y" type="number" step="0.01" min="0" required></label></div><div class="field-row"><label class="input-label">半径<input name="radius" type="number" step="0.1" min="2" required></label><label class="input-label star-only">天空环内半径<input name="inner" type="number" step="0.1" min="3"></label><label class="input-label star-only">天空环外半径<input name="outer" type="number" step="0.1" min="5"></label></div><label class="input-label star-only">星点用途<select name="role"><option value="target">目标星</option><option value="reference">比星</option><option value="check">校验星</option></select></label><label class="input-label reference-only" hidden>目录星等<input name="magnitude" type="number" min="-5" max="30" step="0.001"></label><p id="annotationMessage" class="muted" role="status"></p><div class="dialog-actions"><button id="removeAnnotation" class="tool" type="button" hidden>删除标注</button><button class="primary" type="submit">保存标注</button></div></form></dialog>
+  <dialog id="observationDialog"><div class="section-head"><h2>观测记录</h2><button type="button" class="tool close-dialog" aria-label="关闭">×</button></div><div id="observationText"></div><div class="dialog-actions"><a id="downloadJSON" class="secondary" download>下载 JSON</a><a id="downloadCSV" class="primary" download>下载 CSV</a></div></dialog>
+  <div id="globalStatus" class="toast" role="status" hidden></div>
+</body>
+</html>
