@@ -83,7 +83,8 @@ async function listObservations() {
   if (!records.length) placeholder(list, '暂无观测记录');
   records.forEach(record => {
     const stamp = new Date(record.created).toLocaleString('zh-CN', {hour12: false});
-    entry(list, `${fmt(record.magnitude, 3)} mag`, stamp, null, () => showObservation(record.id), false, 'observation', record.id);
+    const detail = record.paired_magnitude == null ? stamp : `${stamp} · 配对 ${fmt(record.paired_magnitude, 3)}`;
+    entry(list, `${fmt(record.magnitude, 3)} mag`, detail, null, () => showObservation(record.id), false, 'observation', record.id);
   });
 }
 function choose(kind, id) {
@@ -193,9 +194,14 @@ function renderReadings() {
   const caret = report?.magnitude;
   $('targetMagnitude').replaceChildren(document.createTextNode(fmt(caret, 3)));
   if (caret != null) $('targetMagnitude').append(el('small', 'mag'));
+  const paired = report?.paired_magnitude;
+  $('pairedMagnitude').replaceChildren(document.createTextNode(fmt(paired, 3)));
+  if (paired != null) $('pairedMagnitude').append(el('small', 'mag'));
   $('targetLabel').textContent = state.field.stars.find(star => star.id === report?.target)?.name || '先标注目标星';
   $('referenceCount').textContent = `${report?.valid_count ?? 0} 颗有效比星`;
-  $('refSpread').textContent = report?.spread == null ? '' : `各比星结果相差 ${fmt(report.spread, 3)} mag`;
+  $('pairedCount').textContent = `${report?.paired_count ?? 0} 对有效`;
+  $('refSpread').textContent = report?.spread == null ? '' : `普通差分各比星结果相差 ${fmt(report.spread, 3)} mag`;
+  $('pairedSpread').textContent = report?.paired_spread == null ? '' : `配对天空各对结果相差 ${fmt(report.paired_spread, 3)} mag`;
   const rows = (report?.references || []).map(item => {
     const tr = el('tr');
     const title = el('td', item.name);
@@ -211,6 +217,31 @@ function renderReadings() {
     rows.push(row);
   }
   $('references').replaceChildren(...rows);
+  $('pairs').replaceChildren(...pairRows(report?.pairs || []));
+}
+function pairRows(pairs) {
+  if (!pairs.length) {
+    const row = el('tr');
+    const cell = el('td', '添加比星后核对共同合格的天空扇区。', 'no-ref');
+    cell.colSpan = 4;
+    row.append(cell);
+    return [row];
+  }
+  return pairs.map(item => {
+    const row = el('tr');
+    const title = el('td', item.name);
+    const directions = item.directions.length ? item.directions.join('·') : '无共同扇区';
+    title.append(el('span', item.directions.length ? `${directions} · ${item.axis_count} 轴` : directions, 'pair-direction'));
+    if (item.reason) title.append(el('span', item.reason, 'pair-reason'));
+    row.append(title, el('td', fmt(item.target_net, 0)), el('td', fmt(item.reference_net, 0)),
+      el('td', fmt(item.magnitude, 3)));
+    row.title = sectorNote(item);
+    return row;
+  });
+}
+function sectorNote(item) {
+  const describe = stars => (stars || []).map(sector => `${sector.label} ${sector.pixels}/${sector.complete}`).join('，');
+  return `目标星扇区像素：${describe(item.target_sectors)}\n比星扇区像素：${describe(item.reference_sectors)}`;
 }
 function renderReading() {
   renderReadings();
@@ -338,8 +369,12 @@ async function showObservation(id) {
   list.replaceChildren(el('p', `${report.field_name} · 原片修订 ${report.field_revision}`, 'muted'),
     el('p', `目标星等 ${fmt(result.magnitude, 3)} mag · ${result.valid_count} 颗有效比星`));
   result.references.forEach(row => list.append(el('p', `${row.name} · ${row.reason || fmt(row.magnitude, 3) + ' mag'}`, 'muted')));
+  if (result.paired_magnitude != null) list.append(el('p', `配对天空 ${fmt(result.paired_magnitude, 3)} mag · ${result.paired_count} 对有效`, 'muted'));
+  (result.pairs || []).forEach(row => list.append(el('p',
+    `${row.name} · ${row.usable ? `${row.directions.join('·')} · ${fmt(row.magnitude, 3)} mag` : row.reason}`, 'muted')));
   $('downloadJSON').href = `${link}/observation.json`;
   $('downloadCSV').href = `${link}/observation.csv`;
+  $('downloadPairs').href = `${link}/pairs.csv`;
   $('observationDialog').showModal();
 }
 

@@ -131,7 +131,9 @@ def create_app(root):
             return binary(data, 'application/json', file)
         if file == 'observation.csv':
             return binary(reporting.as_csv(snapshot), 'text/csv', file)
-        raise Invalid('观测记录仅提供 JSON 和 CSV。')
+        if file == 'pairs.csv':
+            return binary(reporting.as_pairs_csv(snapshot), 'text/csv', file)
+        raise Invalid('观测记录仅提供 JSON、比星表和配对天空 CSV。')
 
     @api.post('/fields/<key>/prepare')
     def prepare(key):

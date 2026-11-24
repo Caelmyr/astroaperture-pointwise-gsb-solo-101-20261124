@@ -147,5 +147,6 @@ class Workspace:
         self.open(key)
         snapshots = (read(path) for path in (self.directory(key) / 'observations').glob('[0-9a-f]*.json'))
         summary = [{'id': value['id'], 'created': value['created'], 'revision': value['field_revision'],
-                    'magnitude': value['report']['magnitude']} for value in snapshots]
+                    'magnitude': value['report']['magnitude'],
+                    'paired_magnitude': value['report'].get('paired_magnitude')} for value in snapshots]
         return sorted(summary, key=lambda value: value['created'], reverse=True)
